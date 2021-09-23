@@ -21,16 +21,10 @@ git clone https://github.com/vijaybioinfo/clustering.git
 cd clustering
 ```
 
-Make sure your config.yaml is pointing to where you have the pipeline.
-This will also add the run.sh script as an alias.
-```
-sh ./locate_pipeline.sh
-```
-
 ### Run the pipeline
 After you've added the necessary information to the YAML file you can call the pipeline.
 ```
-clustering -y /path/to/project/config.yaml
+/path/to/clustering/run.sh -y /path/to/project/config.yaml
 ```
 
 You might benefit from having an environment for the pipeline. And you can indicate the name in the YAML
