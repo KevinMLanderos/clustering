@@ -17,14 +17,14 @@ NOTES:
 ### Install
 Clone this repository (your ~/bin folder is a good place).
 ```
-git clone https://github.com/vijaybioinfo/clustering.git
+git clone https://git .. /clustering.git [copy clone URL at the top]
 cd clustering
 ```
 
 ### Run the pipeline
 After you've added the necessary information to the YAML file you can call the pipeline.
 ```
-/path/to/clustering/run.sh -y /path/to/project/config.yaml
+run.sh -y /path/to/project/config.yaml
 ```
 
 You might benefit from having an environment for the pipeline. And you can indicate the name in the YAML
