@@ -1,0 +1,116 @@
+---
+title: "Filtering cells"
+author:
+    - name: "[Ciro Ramirez Suastegui](https://github.com/cramirezs)"
+      affiliation: "La Jolla Institute for Immunology, San Diego, USA"
+      email: "ksuasteguic@gmail.com"
+date: "Last update: `r format(Sys.time(), '%Y, %B %d, at %H:%M')`"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    number_sections: false
+    fig_caption: true
+    theme: cosmo
+    code_folding: hide
+---
+
+<!--
+R -e "rmarkdown::render(
+  input = '/home/ciro/scripts/clustering/R/filtering_assessment.rmd',
+  output_dir = '/home/ciro/ad_hoc/pbtumor/results/'
+)" --slave
+-->
+
+
+This script is to address the filtering differences between:
+
+- `/home/ciro/scripts/quality_control/single_cell.R`
+- `/home/ciro/scripts/clustering/R/seurat.R`
+
+
+We are taking the [PBT project](https://informaticsdata.liai.org/NGS_analyses/ad_hoc/Groups/vd-vijay/cramirez/pbtumor/results/CD45pCD3p_report.html) as example.
+The missing doublet filter won't affect the assessment
+
+```{bash, parameters_in_config}
+grep -EC 2 "_RNA|percent.mt|HT_ID|nSamples_expressed" /home/ciro/pbtumor/scripts/qc_config_CD45pCD3p.yaml
+grep -EC 2 "nSamples_expressed" /home/ciro/scripts/quality_control/single_cell.R
+grep -EC 2 "_RNA|percent.mt|HT_ID|nSamples_expressed" /home/ciro/ad_hoc/pbtumor/results/clustering/CD45pCD3p_xdoublets/config.yaml
+```
+
+### Correlation between metrics
+
+```{r, metadata_cor}
+source("/home/ciro/scripts/handy_functions/devel/file_reading.R")
+mdata_pre = readfile("/home/ciro/ad_hoc/pbtumor/results/quality_control/CD45pCD3p/metadata_filtered.rdata")
+mdata_pos = readfile(paste0("/home/ciro/ad_hoc/pbtumor/results/clustering/",
+  "CD45pCD3p_xdoublets/.object_meta.data_seurat_mean0.01_pct15_pc15.rds"))
+cnames = c("nCount_RNA", "nFeature_RNA", "percent.mt")
+sapply(X = cnames, FUN = function(x){
+  cor(mdata_pre[rownames(mdata_pos), x], mdata_pos[, x])
+})
+```
+
+You can see that the correlation is good.
+
+### 1. quality_control/single_cell.R
+
+```{bash, code_qc}
+grep 'Minimal filter:' -A 100 /home/ciro/scripts/quality_control/single_cell.R |
+  grep -EB 100 'Data = casefold|RNA|meta_data <- meta_data|expr_data <- expr_data'
+```
+
+1.1 Filter cells with the low nFeature_RNA (max: 200).
+
+1.2 Filter features expressed in a percentage of the cells (min: 0, max: 30 cells).
+
+1.3 Calculate percent.mt[ribo,hs] and _RNA metrics.
+Another point to note is that we could make filtering by the metadata the
+very first step, but that would make the metrics and number of features
+change depending on the subset and I am not sure if that's something we want.
+`grep -EC 3 "subsampling" /home/ciro/scripts/quality_control/single_cell.R`
+
+
+### 2. CreateSeuratObject recalculates _RNA metrics
+
+```{bash, code_clustering}
+grep 'Filtering data' -A 50 /home/ciro/scripts/clustering/R/seurat.R |
+  grep -EB 50 '\);|nSamples_min|expr_data'
+```
+
+2.1 Filter metadata based on filtering$subset (YAML).
+
+2.2 Filter features expressed in a percentage of the cells
+(calculated now with filtered data).
+
+2.3 The _RNA metrics values are now from CreateSeuratObject.
+
+### Conclusion
+
+The _RNA metrics and number of features we end up with changes by using
+CreateSeuratObject after filtering the metadata. Also,
+quality_control/single_cell.R is constrained by wanting a "Minimal filter."
+Firstly, this excludes cells with features dictated by the lower bound (0 and 200).
+Secondly, "nSamples_expressed" dictates the amount of cells a feature needs to
+be expressed in (this will be between 0 and 30 cells).
+Only the second happens just before the clustering. Thus varying the amount of
+features the clustering takes.
+
+Alternatives:
+
+1. Testing if CreateSeuratObject would come up with the same numbers by
+repeating the same "Minimal filters."
+
+2. Don't let CreateSeuratObject estimate the metrics.
+
+I believe the numbers are close enough to not affect. But this needs to be
+assessed with more extreme filters. In any case, alternative (2) should not be
+used because these metrics need to vary depending on the subset.
+
+---
+
+```{r report_progress, echo = FALSE, results = 'asis'}
+cat("Report compiled from:", knitr::current_input(dir = TRUE), "\n")
+```

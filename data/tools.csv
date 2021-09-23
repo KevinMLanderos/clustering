@@ -1,0 +1,3 @@
+tool_name,script,prefix_exec
+seurat,R/seurat.R,Rscript
+scanpy,python/scanpy.py,python

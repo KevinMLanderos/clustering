@@ -1,0 +1,38 @@
+---
+project_name: clustering_test
+# path to the Cell Ranger ouput; it can even be a CSV file like the one in a Cell Ranger aggregation
+input_expression: "/home/ciro/ad_hoc/fungal_allergy/raw/cellranger/aggr/non_prolif"
+# A table of the metadata per library, or the whole metadata ready.
+# It can be multiple files: [metadata_lib.csv, demultiplexed_hashtags.rdata]
+metadata:
+  - "/home/ciro/fungal_allergy/info/metadata_library.csv"
+  - "/home/ciro/ad_hoc/fungal_allergy/results/quality_control/non_prolif/metadata_prefilter.rdata"
+# if you don't add "/" at the end, it will append 'project_name'
+output_dir: "/home/ciro/ad_hoc/fungal_allergy/results/clustering/"
+filtering:
+  subset: {expr: "nFeature_RNA >= 200 & nFeature_RNA <= Inf & nCount_RNA >= -Inf & nCount_RNA <= Inf & percent.mt <= 40"}
+  nSamples_expressed: 0.001 # % of cells in which that gene is present
+regress_var: [nCount_RNA, percent.mt]
+norm: LogNormalize
+variable_features:
+  file: ./data/prot_coding_genes.csv
+  method: vst
+  nfeatures: 2000
+  percent: [15, 25]  # iterated
+  mean.cutoff: [0.01, 8]
+  dispersion.cutoff: [1, Inf]
+resolution: [0.1, 0.2, 0.4, 0.6, 0.8] # iterated during markers
+dim_reduction:
+  base: {type: pca, n_comp: 40, chosen_comp: [15, 25]} # iterated: chosen
+  tsne: {perplexity: 'auto', reduction.use: "pca"}
+  umap: {n.neighbors: 30, min.dist: 0.3}
+markers:
+  select: snn_res. # pattern in the metadata's columns
+  test: MAST
+  avg_logFC: 0.25
+  p_val_adj: 0.05
+tool: seurat
+pipeline: ./
+cluster_config: ./cluster.json
+environment: clustering
+...

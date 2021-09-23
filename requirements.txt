@@ -1,0 +1,3 @@
+scanpy>=1.4.6
+sccaf>=0.0.10
+snakemake-py37>=5.4.6

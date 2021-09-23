@@ -1,0 +1,20 @@
+## Comparing Seurat objects before and after clustering
+all.equal(mycells_clust, mycells)
+# [1] "Names: Lengths (8, 2) differ (string compare on first 2)"
+# [2] "Names: 1 string mismatch"
+# [3] "Attributes: < Component \"active.ident\": Attributes: < Component \"levels\": Lengths (11, 1) differ (string compare on first 1) > >"
+# [4] "Attributes: < Component \"active.ident\": Attributes: < Component \"levels\": 1 string mismatch > >"
+# [5] "Attributes: < Component \"active.ident\": 5807 string mismatches >"
+# [6] "Attributes: < Component \"commands\": Length mismatch: comparison on first 4 components >"
+# [7] "Attributes: < Component \"graphs\": names for target but not for current >"
+# [8] "Attributes: < Component \"graphs\": Length mismatch: comparison on first 0 components >"
+# [9] "Attributes: < Component \"meta.data\": Length mismatch: comparison on first 25 components >"
+# [10] "Attributes: < Component \"reductions\": Length mismatch: comparison on first 1 components >"
+mycells@reductions # just pca
+mycells_clust@reductions # pca + other reductions
+setdiff(colnames(mycells_clust[[]]), colnames(mycells[[]])) # clustering columns
+str(mycells@graphs)
+str(mycells_clust@graphs) # List of 2: RNA_nn and RNA_snn
+setdiff(names(mycells_clust@commands), names(mycells@commands)) # "FindNeighbors.RNA.pca", "FindClusters", "RunTSNE", "RunUMAP.RNA.pca"
+str(mycells@active.ident); str(mycells_clust@active.ident) # last clustering replaces the project name
+setdiff(names(mycells_clust), names(mycells)) # graphs and reductions names
