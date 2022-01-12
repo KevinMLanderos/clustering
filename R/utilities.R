@@ -39,7 +39,11 @@ get_source_data <- function(
         found_edata <- if(tvar) found_edata@raw.data else found_edata[["RNA"]]@counts
       }else if(otype == "saver"){
         if(verbose) cat(" - SAVER "); found_edata <- found_edata$estimate
-      }; if(verbose) cat("\n"); xpath <- dirname(xpath)
+      }else if(otype == "singlecellexperiment"){
+        found_mdata <- SingleCellExperiment::colData(found_edata)
+        found_edata <- SingleCellExperiment::counts(found_edata)
+      }
+      if(verbose) cat("\n"); xpath <- dirname(xpath)
     }; if(verbose) cat("\n")
   }else{
     if(verbose){ cat("Input for merging:\n"); print(xpath) }
