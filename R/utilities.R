@@ -41,7 +41,7 @@ get_source_data <- function(
         found_edata <- found_edata$estimate
       }else if(otype == "singlecellexperiment"){
         print(found_edata)
-        found_mdata <- SingleCellExperiment::colData(found_edata)
+        found_mdata <- data.frame(SingleCellExperiment::colData(found_edata))
         tmp <- intersect(c("X", "counts"), names(found_edata@assays@data))
         if(length(tmp) == 0) tmp = 1
         cat("  Taking assay", tmp, "\n")
@@ -132,7 +132,7 @@ get_source_data <- function(
     if(!tvar["in_rownames"]) rownames(found_mdata) <- found_mdata[, tmp]
   }else if(exists("found_mdata")){
     if(verbose) cat("- given in expression input\n");
-    print(str(found_mdata))
+    str(found_mdata)
   }else{ if(verbose) str(grpsamples) }
 
   if(!exists("found_mdata")){
