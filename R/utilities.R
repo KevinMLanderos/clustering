@@ -38,8 +38,16 @@ get_source_data <- function(
         tvar <- grepl("^2.|^1.", found_edata@version)
         found_edata <- if(tvar) found_edata@raw.data else found_edata[["RNA"]]@counts
       }else if(otype == "saver"){
-        if(verbose) cat(" - SAVER "); found_edata <- found_edata$estimate
-      }; if(verbose) cat("\n"); xpath <- dirname(xpath)
+        found_edata <- found_edata$estimate
+      }else if(otype == "singlecellexperiment"){
+        print(found_edata)
+        found_mdata <- data.frame(SingleCellExperiment::colData(found_edata))
+        tmp <- intersect(c("X", "counts"), names(found_edata@assays@data))
+        if(length(tmp) == 0) tmp = 1
+        cat("  Taking assay", tmp, "\n")
+        found_edata <- found_edata@assays@data[[tmp[1]]]
+      }
+      if(verbose) cat("\n"); xpath <- dirname(xpath)
     }; if(verbose) cat("\n")
   }else{
     if(verbose){ cat("Input for merging:\n"); print(xpath) }
