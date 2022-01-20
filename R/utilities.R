@@ -92,6 +92,7 @@ get_source_data <- function(
   str(found_edata, max.level = 2); gc()
   tvar <- paste0(paste0(".*", library_names, "_"), collapse = "|")
   colnames(found_edata) <- gsub(tvar, "", colnames(found_edata))
+  colnames(found_edata) <- gsub(".*filtered_feature_bc_matrix_", "", colnames(found_edata))
 
   if(verbose) cat("======================= Annotation/metadata\n")
   # This file must be a table with the following structure
@@ -99,22 +100,21 @@ get_source_data <- function(
   if(verbose && is.character(metadata)) cat("File:", metadata[1], "\n")
   grpsamples <- if(!is.null(dim(metadata))){
     if(verbose) cat("* Given!\n"); metadata
-  }else if(file.exists(metadata)){
+  }else if(file.exists(metadata[1])){
     if(verbose) cat("* Reading!\n")
     readfile(metadata[1], row.names = 1, stringsAsFactors = FALSE,
       check.names = FALSE, header = TRUE, verbose = verbose)
   }else{
     if(verbose) cat("* Making table of library names!\n")
     data.frame(library = library_names, stringsAsFactors = FALSE)
-  }; tvar <- any(grepl("cellname", colnames(grpsamples)))
-  if(tvar) rownames(grpsamples) <- grpsamples$cellname
-  # print(head(grpsamples))
-  # print(head(colnames(found_edata)))
+  };
+  if(!is.null(grpsamples$cellname)) rownames(grpsamples) <- grpsamples$cellname
   # find which column contains barcodes
   tvar <- apply(grpsamples, 2, function(x) sum(x %in% colnames(found_edata)) )
   # then check if they're in the rownames
   tvar["in_rownames"] <- sum(rownames(grpsamples) %in% colnames(found_edata))
-  if(isTRUE(tvar["in_rownames"]) && verbose) cat("Sample names in rows\n")
+  if(tvar["in_rownames"]>2 && verbose) cat("Sample names in rows\n")
+  if(verbose) str(grpsamples)
   if(any(tvar > 2)){
     # check if any of the columns in the table has the cell names (barcodes)
     if(verbose) cat("- provided from file\n"); # is it the annotation itself?!
@@ -125,7 +125,10 @@ get_source_data <- function(
   }else if(exists("found_mdata")){
     if(verbose) cat("- given in expression input\n");
     print(str(found_mdata))
-  }else{ if(verbose) str(grpsamples) }
+  }else if(verbose){
+    cat("Matrix:\n"); print(head(colnames(found_edata)))
+    cat("Table:\n"); print(head(rownames(grpsamples)))
+  }
 
   if(!exists("found_mdata")){
     if(verbose) cat(" - building table...\n");
@@ -591,17 +594,19 @@ get_top_n <- function(
 ) {
   if(verbose) cat("Getting top", n, "features per", cname, "\n")
   groups <- names(table(x[, cname]))
+  x$gene <- as.character(x$gene)
   if(!dpct %in% colnames(x)) x[, dpct] <- 100 * (x$pct.1 - x$pct.2)
   y <- as.data.frame(data.table::rbindlist(lapply(groups, function(z){
     if(verbose) cat('.')
     dat <- x[which(as.character(x[, cname]) == z), ]
     tvar <- isTRUE(filter_neg) && any(dat[, dpct] > 0)
     if(tvar) dat <- dat[dat[, dpct] > 0, ]
-    tvar <- !grepl(filter_pattern, casefold(dat$gene))
+    tvar <- !grepl(filter_pattern, dat$gene, ignore.case = TRUE)
     dat <- dat[tvar, ] # Removing RPS and RPL features
     if(sum(!tvar)) dat$ribomito_genes <- sum(!tvar)
     data.table::setorderv(dat, orderby)
-    head(dat, n)
+    # head(dat, n)
+    dat[dat$gene %in% head(unique(dat$gene), n), ]
   }), fill = TRUE)); if(verbose) cat('\n')
   return(y)
 }
@@ -891,4 +896,19 @@ make_list <- function(x, colname = colnames(x)[1], col_objects = NULL, grouping 
     names(tmp) <- unlist(tvar); tvar <- tmp
   }
   return(tvar)
+}
+
+ident_set_object <- function(x, verbose = TRUE){
+  for (i in x) {
+    if(exists("sc_tcells")){
+      command <- paste0(i, " = ident_set_names(object = ", i, ", ident = ",
+        i, "_ident, cluster_column = ", i, "_clust)")
+      if(verbose) cat(command, "\n")
+      base::eval(base::parse(text = command), envir = .GlobalEnv)
+      command <- paste0(i, "_ident <- ident_colours(", i, "_ident, mdata = ",
+        i, "@meta.data)")
+      if(verbose) cat(command, "\n")
+      base::eval(base::parse(text = command), envir = .GlobalEnv)
+    }
+  }
 }

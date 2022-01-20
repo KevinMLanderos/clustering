@@ -449,9 +449,12 @@ plot_grids = function(
 marker_report <- function(
   markers_df,
   top_n = 20,
+  significance = "p_val_adj",
   file = "_summary_stats.csv",
   return_plot = FALSE,
-  verbose = FALSE
+  overlaps = TRUE,
+  verbose = FALSE,
+  ... # aes() arguments
 ){
   if(verbose) cat("  ------- Plotting markers -------\n")
   return_list = list()
@@ -461,18 +464,18 @@ marker_report <- function(
   if(is.null(markers_df$Dpct))
     markers_df$Dpct <- 100 * (markers_df$pct.1 - markers_df$pct.2)
   if(is.null(markers_df$Significance)){
-    markers_df$Significance <- (-log10(markers_df$p_val_adj))
+    markers_df$p_val_adj <- markers_df[, significance]
+    markers_df$Significance <- (-log10(markers_df[, significance]))
     tvar <- max(markers_df$Significance[is.finite(markers_df$Significance)])
     markers_df$Significance[is.infinite(markers_df$Significance)] <- tvar
   }
-  deltaSlope_skip <- is.null(markers_df$Dmean)
   trail <- paste0("_summary_stats|\\.", tools::file_ext(file))
 
   if(verbose && !is.null(markers_df$Dpct)){
     cat("Negative deltas:"); print(table(markers_df$cluster, markers_df$Dpct < 0))
   }
 
-  if(!deltaSlope_skip){
+  if(!is.null(markers_df$Dmean)){
     top_features <- get_top_n(
       x = markers_df, filter_pattern = "XY123",
       filter_neg = FALSE, n = top_n, verbose = verbose
@@ -498,50 +501,90 @@ marker_report <- function(
 
   top_features <- get_top_n(x = markers_df, n = top_n, verbose = verbose)
   top_features$gene <- as.character(gsub(".ENSG.*", "", top_features$gene))
-  if(requireNamespace("dplyr", quietly = TRUE)){
+  # print(top_features[top_features$gene == "GYG1", ])
+  if(requireNamespace("tidytext", quietly = TRUE)){
     top_features = dplyr::mutate(
       .data = top_features,
-      gene = tidytext::reorder_within(x = gene, by = -Dpct, cluster_n)
+      gene = tidytext::reorder_within(x = gene, by = -Dpct, within = cluster_n)
     )
+    # data.table::setorderv(top_features, cols = c("cluster_n", "Dpct"), order = c(1, -1))
   }
-  deltas = ggplot(
-    data = top_features,
-    mapping = aes(x = gene, y = Dpct, size = Significance, color = avg_logFC)
-  ) + geom_point() + facet_wrap(~ cluster_n, scale = 'free_x') +
-    scale_size(breaks = scales::pretty_breaks(n = 5)) +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-    labs(x = NULL, y = "%(CLUSTER) - %(REST)") +
-    ylim(min(top_features$Dpct, na.rm = TRUE), 100) + theme_classic() +
-    theme(
-      axis.text.x = element_text(face = "bold", hjust = 1, angle = 45),
-      axis.text.y = element_text(face = "bold"),
-      axis.title.y = element_text(face = "bold"),
-      panel.grid.major.x = element_line(size = 0.1, colour = "#f4f4f4"),
-      panel.border = element_rect(fill = NA),
-      strip.text.x = element_text(face = "bold")
-    )
-  if(requireNamespace("tidytext", quietly = TRUE)){
-    deltas = deltas + tidytext::scale_x_reordered()
-  }
-  return_list$delta_percentage = deltas
-  if(requireNamespace("UpSetR", quietly = TRUE)){
+  return_list$delta_percentage = plot_deltas(top_features, ...)
+  if(requireNamespace("UpSetR", quietly = TRUE) && isTRUE(overlaps)){
     updf <- as.data.frame.matrix(table(markers_df[, c("gene", "cluster_n")]))
     updf <- updf[, gtools::mixedsort(colnames(updf))]
-    return_list$markers_overlap = UpSetR::upset(
-      data = updf, sets.x.label = "Number of markers")
+    return_list$markers_overlap = (UpSetR::upset(
+      data = updf, sets = colnames(updf), keep.order = TRUE,
+      sets.x.label = "Number of markers"))
+    if(exists("plot_flush")) plot_flush()
   }
 
   if(!return_plot){
     for(i in names(return_list)){
       fname_i <- paste0(gsub(trail, "", file), "_", i, ".pdf")
       if(verbose) cat(fname_i, "\n")
-      pdf(fname_i, height = 12, width = 14, onefile = FALSE);
+      tvar <- ifelse(!is.null(list(...)$shape), 20, 14)
+      pdf(fname_i, height = 12, width = tvar, onefile = FALSE);
       print(return_list[[i]]); graphics.off()
     }
   }
 
   if(verbose) cat("  ------- -------- ------- -------\n")
   if(return_plot) return(return_list) else invisible(x = NULL)
+}
+
+plot_deltas = function(
+  data,
+  ...
+) {
+  easy <- aes(x = gene, y = Dpct, colour = avg_logFC, size = Significance)#, ...)
+  arg_list = list(...)
+  if(length(arg_list) > 0){
+    for (i in names(arg_list)) easy[[i]] <- as.name(arg_list[[i]])
+  }
+  ymin <- min(data$Dpct, na.rm = TRUE)
+  tvar <- ifelse(!is.null(list(...)$shape), 3, 4)
+  deltas = ggplot(data = data, mapping = easy)
+  if(requireNamespace("ggbeeswarm", quietly = TRUE)){
+    deltas <- deltas + ggbeeswarm::geom_quasirandom(width = 0.3)
+  }else{
+    deltas <- deltas + geom_point()
+  }
+  deltas <- deltas +
+    facet_wrap(~ cluster_n, scale = 'free_x') +
+    scale_size(breaks = scales::pretty_breaks(n = 4), range = c(0, tvar)) +
+    # scale_size_area(breaks = scales::pretty_breaks(n = 4), max_size = tvar) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+    labs(x = NULL, y = "%(CLUSTER) - %(REST)") +
+    ylim(ymin, 100) + theme_classic() +
+    theme(
+      axis.text.x = element_text(face = "bold", size = rel(0.85), hjust = 1, angle = 45),
+      axis.text.y = element_text(face = "bold"),
+      axis.title.y = element_text(face = "bold"),
+      panel.border = element_rect(fill = NA),
+      strip.text.x = element_text(face = "bold", size = rel(1.5))
+    )
+  deltas <- deltas + geom_linerange(
+    mapping = aes(x = gene, y = Dpct, ymin = ymin, ymax = Dpct),
+    color = "#d4d4d4", size = 0.1, inherit.aes = FALSE)
+  if(!is.null(easy$shape)){
+    tvar <- nlevels(factor(data[, rlang::as_name(easy$shape)]))
+    tvar <- setdiff(0:60, c(0:4, 10:13, 19:21, 46))[1:tvar]
+    deltas <- deltas + scale_shape_manual(values = tvar)
+  }
+  if(requireNamespace("scico", quietly = TRUE)){
+    cols <- if(is.numeric(data[, rlang::as_name(easy$colour)])){
+      scico::scale_color_scico(palette = "lajolla", direction = -1)
+    }else{
+      cols <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(9, "Set1"))
+      ggplot2::scale_color_manual(values = cols(nlevels(factor(cols))))
+    }
+    deltas <- deltas + cols
+  }
+  if(requireNamespace("tidytext", quietly = TRUE)){
+    deltas = deltas + tidytext::scale_x_reordered()
+  }
+  return(deltas)
 }
 
 variable_features_report <- function(
