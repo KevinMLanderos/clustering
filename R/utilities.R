@@ -101,6 +101,7 @@ get_source_data <- function(
   tvar <- paste0(paste0(".*", library_names, "_"), collapse = "|")
   colnames(found_edata) <- gsub(tvar, "", colnames(found_edata))
   colnames(found_edata) <- gsub(".*filtered_feature_bc_matrix_", "", colnames(found_edata))
+  colnames(found_edata) <- gsub(".*.outs._", "", colnames(found_edata))
 
   if(verbose) cat("======================= Annotation/metadata\n")
   # This file must be a table with the following structure
@@ -134,8 +135,8 @@ get_source_data <- function(
     if(verbose) cat("- given in expression input\n");
     print(str(found_mdata))
   }else if(verbose){
-    cat("Matrix:\n"); print(head(colnames(found_edata)))
-    cat("Table:\n"); print(head(rownames(grpsamples)))
+    cat("Matrix:\n"); print(head(colnames(found_edata))); print(tail(colnames(found_edata)))
+    cat("Table:\n"); print(head(rownames(grpsamples))); print(tail(rownames(grpsamples)))
   }
 
   if(!exists("found_mdata")){
