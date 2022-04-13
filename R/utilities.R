@@ -46,7 +46,7 @@ get_source_data <- function(
         if(length(tmp) == 0) tmp = 1
         cat("  Taking assay", tmp, "\n")
         found_edata <- found_edata@assays@data[[tmp[1]]]
-      }else if(otype == "asssay"){
+      }else if(otype == "assay"){
         if(verbose) cat("  Taking @counts)\n");
         found_edata <- found_edata@counts
       }
