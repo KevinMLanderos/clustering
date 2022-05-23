@@ -479,10 +479,10 @@ marker_report <- function(
     top_features <- get_top_n(
       x = markers_df, filter_pattern = "XY123",
       filter_neg = FALSE, n = top_n, verbose = verbose
-    )
+    ); top_features$foldchange = top_features$avg_log
     deltaSlope <- ggplot(
       data = top_features,
-      mapping = aes(x = Dpct, y = log2(Dmean), size = Significance, color = avg_logFC)
+      mapping = aes(x = Dpct, y = log2(Dmean), size = Significance, color = foldchange)
     ) + geom_point() + facet_wrap(~ cluster_n, scale = 'free') +
       geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
       geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
@@ -537,7 +537,8 @@ plot_deltas = function(
   data,
   ...
 ) {
-  easy <- aes(x = gene, y = Dpct, colour = avg_logFC, size = Significance)#, ...)
+  data$foldchange = data$avg_log
+  easy <- aes(x = gene, y = Dpct, colour = foldchange, size = Significance)
   arg_list = list(...)
   if(length(arg_list) > 0){
     for (i in names(arg_list)) easy[[i]] <- as.name(arg_list[[i]])
