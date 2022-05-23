@@ -37,7 +37,7 @@ dgea_seurat = function(
       ); timestamp()
       file.remove(running_fag); cmarkers$gene_name <- paste0("'", cmarkers$gene)
       saveRDS(object = cmarkers, file = results_f)
-    }; tvar <- cmarkers$avg_logFC >= config_markers$avg_logFC
+    }; tvar <- cmarkers$avg_log >= config_markers$avg_logFC
     tmp <- cmarkers$p_val_adj <= config_markers$p_val_adj
     cmarkers <- cmarkers[which(tvar & tmp), ]
     if(!file.exists(meansf) && !is.null(cluster_column)){
