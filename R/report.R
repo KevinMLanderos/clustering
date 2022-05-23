@@ -124,7 +124,7 @@ if(isTRUE(opt$do_markers)){
     cmarkers <- readfile(cmarkers_f, row.names = 1)
 
     cmarkers_f1 <- if(!any(is_filtered)){
-      tvar <- cmarkers$avg_logFC >= opt$avg_logFC & cmarkers$p_val_adj <= opt$p_val_adj
+      tvar <- cmarkers$avg_log >= opt$avg_logFC & cmarkers$p_val_adj <= opt$p_val_adj
       cmarkers <- cmarkers[tvar, ]
       paste0(gsub(paste0("\\.", tools::file_ext(cmarkers_f)), "", cmarkers_f),
         "_fc", opt$avg_logFC, "_padj", opt$p_val_adj, ".csv")
