@@ -614,10 +614,13 @@ get_top_n <- function(
     tvar <- isTRUE(filter_neg) && any(dat[, dpct] > 0)
     if(tvar) dat <- dat[dat[, dpct] > 0, ]
     tvar <- !grepl(filter_pattern, dat$gene, ignore.case = TRUE)
-    dat <- dat[tvar, ] # Removing RPS and RPL features
-    if(sum(!tvar)) dat$ribomito_genes <- sum(!tvar)
+    if(any(tvar)) { # only if some rows are left
+      dat <- dat[tvar, ] # Removing RPS and RPL features
+      dat$ribomito_genes <- sum(!tvar)
+    }else{
+      return(dat)
+    }
     data.table::setorderv(dat, orderby)
-    # head(dat, n)
     dat[dat$gene %in% head(unique(dat$gene), n), ]
   }), fill = TRUE)); if(verbose) cat('\n')
   return(y)
