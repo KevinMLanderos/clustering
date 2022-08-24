@@ -138,7 +138,7 @@ if(!isTRUE(all.equal(these_filters, config$filtering)) || !file.exists(init_obje
     xpath = config$input_expression,
     pj = config$project_name,
     metadata = config$metadata[1],
-    merge_counts = grepl("meco|merge", config$project_name) || !dir.exists(config$input_expression),
+    merge_counts = grepl("meco|merge", config$project_name), # need to adjust function
     verbose = opt$verbose
   )
   Sys.time()

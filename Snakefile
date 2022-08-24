@@ -5,8 +5,7 @@ Contact: Ciro Ramirez-Suastegui (ksuasteguic@gmail.com)
 """
 
 import pandas as pd
-import os
-import sys
+import os, sys, re
 
 conf_file_loc = "config.yaml"
 
@@ -22,15 +21,13 @@ PERCENTAGES = config['variable_features']['percent']
 COMPONENTES = config['dim_reduction']['base']['chosen_comp']
 RESOLUTIONS = config['resolution']
 TOOLS = config['tool']
-PIPELINE = config['pipeline'].rstrip("/")
-
+EXECS = config['exec']
 try:
-    df_exe = pd.read_csv(PIPELINE + "/data/tools.csv", index_col = 0)
-except FileNotFoundError:
-    sys.exit('Table of tools does not exists')
-
-exec_report = PIPELINE + "/R/report.R"
-exec_clustering = df_exe.loc[config['tool'], 'prefix_exec'] + " " + PIPELINE + "/" + df_exe.loc[config['tool'], 'script']
+    EXEC_R = list(filter(re.compile("Rscript").match, [EXECS] if type(EXECS)==str else EXECS))[0]
+except IndexError:
+    EXEC_R = "Rscript"
+SCRIPTS = config['script']
+EXEC_REPORT = config['pipeline'].rstrip("/") + "/R/report.R"
 
 rule all:
     input:
@@ -49,7 +46,7 @@ rule init_object:
         component = config['dim_reduction']['base']['n_comp']
     message: " --- Create initial object --- "
     shell:
-        "{exec_clustering} -y {input} --percent {wildcards.percentage} --n_comp {params.component} "
+        "{EXECS} {SCRIPTS} -y {input} --percent {wildcards.percentage} --n_comp {params.component} "
         "--prefix {wildcards.tool}_mean{wildcards.mean}_pct{wildcards.percentage} --do_markers FALSE"
 
 rule components:
@@ -59,7 +56,7 @@ rule components:
         ".dr_{tool}_mean{mean}_pct{percentage}_pc{component}"
     message: " --- Branch number of components for clustering --- "
     shell:
-        "{exec_clustering} -y {conf_file_loc} --chosen_comp {wildcards.component} "
+        "{EXECS} {SCRIPTS} -y {conf_file_loc} --chosen_comp {wildcards.component} "
         "--prefix {wildcards.tool}_mean{wildcards.mean}_pct{wildcards.percentage} --do_markers FALSE"
 
 rule report_components:
@@ -69,7 +66,7 @@ rule report_components:
         ".{tool}_finished_components"
     message: " --- Creating report: components --- "
     shell:
-        "Rscript {exec_report} --path ./ -m FALSE"
+        "{EXEC_R} {EXEC_REPORT} --path ./ -m FALSE"
 
 rule markers:
     input:
@@ -78,7 +75,7 @@ rule markers:
         ".markers_{tool}_mean{mean}_pct{percentage}_pc{component}_res{resolution}"
     message: " --- Branch resolution for marker calculation --- "
     shell:
-        "{exec_clustering} -y {conf_file_loc} --chosen_comp {wildcards.component} "
+        "{EXECS} {SCRIPTS} -y {conf_file_loc} --chosen_comp {wildcards.component} "
         "--prefix {wildcards.tool}_mean{wildcards.mean}_pct{wildcards.percentage} --resolution {wildcards.resolution}"
 
 rule report_markers:
@@ -88,4 +85,4 @@ rule report_markers:
         ".{tool}_finished_markers"
     message: " --- Creating report: markers --- "
     shell:
-        "Rscript {exec_report} --path ./ -c FALSE"
+        "{EXEC_R} {EXEC_REPORT} --path ./ -c FALSE"

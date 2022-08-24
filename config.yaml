@@ -32,6 +32,8 @@ markers:
   avg_logFC: 0.25
   p_val_adj: 0.05
 tool: seurat
+script: ./R/seurat.R
+exec: Rscript
 pipeline: ./
 cluster_config: ./cluster.json
 environment: clustering
