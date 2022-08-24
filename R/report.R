@@ -4,41 +4,39 @@
 # Clustering: report #
 ######################
 
-library(optparse)
-
 optlist <- list(
-  make_option(
+  optparse::make_option(
     opt_str = c("-p", "--path"), type = "character", default = "./",
     help = "Path to clustering results."
   ),
-  make_option(
+  optparse::make_option(
     opt_str = c("-c", "--do_clusters"), type = "logical", default = TRUE,
     help = "Perform report for clustering solutions."
   ),
-  make_option(
+  optparse::make_option(
     opt_str = c("-m", "--do_markers"), type = "logical", default = TRUE,
     help = "Perform report for markers."
   ),
-  make_option(
+  optparse::make_option(
     opt_str = c("-i", "--include"), type = "character",
     help = "Pattern of files to include."
   ),
-  make_option(
+  optparse::make_option(
     opt_str = c("-e", "--exclude"), type = "character",
     help = "Pattern of files to exclude."
   ),
-  make_option(
+  optparse::make_option(
     opt_str = c("-f", "--config_file"), type = "character",, default = "config.yaml",
     help = "Configuration file used for clustering."
   ),
-  make_option(
+  optparse::make_option(
     opt_str = c("-v", "--verbose"), default = TRUE,
     help = "Verbose: Show progress."
   )
 )
 
-optparse <- OptionParser(option_list = optlist)
-opt <- parse_args(optparse)
+optparse <- optparse::OptionParser(option_list = optlist)
+opt <- optparse::parse_args(optparse)
 if(interactive()){ # Example/manually
   opt$path = "/home/ciro/large/pbtumor/results/clustering/deprecated/CD45pCD3p_xDoublets"
 }
@@ -76,7 +74,7 @@ resources = c(
   "/home/ciro/scripts/handy_functions/devel/utilities.R",
   # filters_columns is.file.finished show_commas (cluster_reports)
   "/home/ciro/scripts/clustering/R/plotting.R", # cluster_reports
-  "/home/ciro/scripts/clustering/R/utilities.R", # get_top_n
+  "/home/ciro/scripts/clustering/R/utilities.R", # get_top_n, marker_report
   "/home/ciro/scripts/handy_functions/devel/filters.R", # sample_even
   "/home/ciro/scripts/handy_functions/devel/plots.R" # plot_pct getlegend mytheme
 )
