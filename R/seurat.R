@@ -212,6 +212,8 @@ if(!file.exists(init_object_name)){
   regress_cc = if(any(config$regress_var %in% c("S.Score", "G2M.Score", "cellcycle"))){
     if("cellcycle" %in% config$regress_var){
       c("S.Score", "G2M.Score")
+    }else if("CC.Difference" %in% config$regress_var){
+      c("CC.Difference")
     }else{ config$regress_var[config$regress_var %in% c("S.Score", "G2M.Score")] }
   }
   config$regress_var <- config$regress_var[config$regress_var %in% colnames(mycells@meta.data)]
@@ -316,6 +318,10 @@ if(!file.exists(init_object_name)){
       g2m.features = cc.genes$g2m.genes,
       set.ident = TRUE
     ); config$regress_var = c(config$regress_var, regress_cc)
+  }
+                 
+  if("CC.Difference" %in% config$regress_var){
+    mycells$CC.Difference <- mycells$S.Score - mycells$G2M.Score
   }
 
   if(!grepl(config$norm, "sctransform")){
